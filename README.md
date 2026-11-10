@@ -1,17 +1,43 @@
-# EMNIST HANDWRITTERN CHARACTER RECOGNITION
-> This is a computer vision work on recognizing handwritten characters using deep learning  
-> We are using a subset of the extended popular MNIST dataset, named as EMNIST  
-> This particular data variant has 10,000 samples and had its own random spilt for train and test 
+# EMNIST Handwritten Character Recognition
 
-[Cleaned and Preprocessed Data via Google Drive](https://drive.google.com/drive/folders/1Lb3EGMDdHWG85wYMiCmRS2rJZSia8MKU?usp=sharing)
+**Computer Vision | Deep Learning | Handwritten Character Classification**
 
-### OVERVIEW: 
-MNIST is a widely used benchmark for handwritten-digit recognition. EMNIST extends this benchmark design to handwritten letters and digits using data from NIST Special Database 19.
+>This project focuses on recognizing handwritten English letters using deep learning. We are using a 10,000-image subset of the EMNIST dataset to compare different neural network architectures and evaluate their performance.
 
-Our project uses a 10,000-image subset of EMNIST Letters, covering 26 classes with uppercase and lowercase forms grouped together. During preprocessing, we found that the supplied test subset did not contain all 26 letters. We therefore reserved it and created stratified training, validation, and test partitions from the source-training images.
+**Project Status:** Data Preprocessing Completed | Model Development in Progress
 
-We will compare a fully connected neural-network (ANN/MLP) baseline with two CNN architectures. We also plan to evaluate separately collected handwriting to investigate how well the models generalize beyond our benchmark subset.
+[Cleaned and Preprocessed Dataset — Google Drive](https://drive.google.com/drive/folders/1Lb3EGMDdHWG85wYMiCmRS2rJZSia8MKU?usp=sharing)
 
+## Overview
+
+MNIST is a widely used benchmark for handwritten-digit recognition. EMNIST extends this benchmark to handwritten letters and digits using data from NIST Special Database 19.
+
+Our project uses the **EMNIST Letters Tiny dataset**, containing 10,000 grayscale images (28 × 28 pixels) across 26 letter classes (A–Z). Uppercase and lowercase handwriting styles are grouped under the same class labels.
+
+During preprocessing, we discovered that the supplied test subset contained only 19 of the 26 classes. To address this, we reserved the original test subset and created new stratified training, validation, and testing splits from the source-training data.
+
+We will compare three deep learning architectures:
+
+- **Artificial Neural Network (ANN/MLP):** Our baseline model.
+- **Convolutional Neural Network (CNN 1):** Our first CNN architecture.
+- **Convolutional Neural Network (CNN 2):** A second CNN architecture for comparison.
+
+Our evaluation will focus on classification performance, particularly accuracy, precision, recall, F1 score, and confusion matrices. We also plan to test the models on independently collected handwriting to investigate how well they generalize beyond the EMNIST subset.
+
+## Project Progress
+
+| Stage | Status |
+|---|---|
+| Data preprocessing and EDA | Completed |
+| ANN and CNN development | In progress |
+| Model evaluation and comparison | Upcoming |
+| External handwriting testing | Planned |
+
+## Preprocessing and Shared Dataset
+
+The preprocessing folder contains the preprocessing notebook/code, documentation, and shared image loader.
+
+The cleaned dataset is available through the Google Drive link above. All three models will use the same training, validation, and testing splits to ensure a consistent comparison.
 
 ## Contributors
 
