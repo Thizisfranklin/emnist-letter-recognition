@@ -1,4 +1,4 @@
-# EMNIST HANDWRITERN CHARACTER RECOGNITION
+# EMNIST HANDWRITTERN CHARACTER RECOGNITION
 > This is a computer vision work on recognizing handwritten characters using deep learning  
 > We are using a subset of the extended popular MNIST dataset, named as EMNIST  
 > This particular data variant has 10,000 samples and had its own random spilt for train and test 
