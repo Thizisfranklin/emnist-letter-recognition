@@ -1,6 +1,6 @@
 # EMNIST Handwritten Letter Recognition
 
-**Capstone project | Deep learning | Data preprocessing & model comparison**
+**Deep learning | Data preprocessing & model comparison**
 
 > **Project status — Work in progress**  
 > I'm still finishing the project write-up and organizing the code. The preprocessing notebook, Python files, and shared image loader will be added as I finalize them. I'm also checking that all exported image folders and files have transferred correctly to Google Drive.
