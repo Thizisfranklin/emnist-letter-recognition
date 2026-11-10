@@ -6,8 +6,7 @@
 > I'm still finishing the project write-up and organizing the code. The preprocessing notebook, Python files, and shared image loader will be added as I finalize them. I'm also checking that all exported image folders and files have transferred correctly to Google Drive.
 
 ## Project overview
-
-For our capstone, we're building models to recognize handwritten English letters from images. We plan to compare **three deep learning architectures**:
+ We're building models to recognize handwritten English letters from images. We plan to compare **three deep learning architectures**:
 
 | Model | Role |
 |---|---|
@@ -15,7 +14,7 @@ For our capstone, we're building models to recognize handwritten English letters
 | Convolutional Neural Network (CNN) — Architecture 1 | First image-based model |
 | Convolutional Neural Network (CNN) — Architecture 2 | Second image-based model |
 
-I am responsible for **data preprocessing**. My goal was to prepare one consistent dataset so everyone on the team could train and evaluate their models using the **same images, labels, and splits** rather than downloading and splitting the data independently.
+Since I am responsible for **data preprocessing**. My goal was to prepare one consistent dataset so everyone on the team could train and evaluate their models using the **same images, labels, and splits** rather than downloading and splitting the data independently.
 
 ### Dataset at a glance
 
@@ -57,14 +56,14 @@ Instead of using that incomplete source test subset as our main evaluation set, 
 
 **Important:** Our main 855-image test split is held out from the source-training subset; it is **not** the official EMNIST test partition. I kept the 1,453 source-test images separate rather than mixing them into model training.
 
-### 4. Explore data quality and handwriting variation
+### 4. Explored data quality and handwriting variation
 
 I visualized five examples of each letter across the main splits and created **class-distribution charts, heatmaps, and pixel-intensity visualizations**.
 
 A major observation was how differently people write the same letter. Some examples were hard to distinguish even by eye:
 
 - **U / V / Y:** Similar handwritten shapes
-- **R / V:** Some R examples resemble V
+- **R / 8:** Some R examples resemble 8
 - **G / Q / 9:** Some G examples resemble Q or the number 9
 - **L / I / 1:** Some lowercase L examples resemble I or 1
 - **Q / P** and **C / O:** Similar-looking forms in some samples
