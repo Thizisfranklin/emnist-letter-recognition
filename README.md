@@ -24,6 +24,14 @@ We will compare three deep learning architectures:
 
 Our evaluation will focus on classification performance, particularly accuracy, precision, recall, F1 score, and confusion matrices. We also plan to test the models on independently collected handwriting to investigate how well they generalize beyond the EMNIST subset.
 
+## Research Focus
+
+Beyond comparing the ANN and CNN architectures, we also want to investigate how well the models generalize to handwriting outside the EMNIST dataset.
+
+We plan to collect handwritten letters from our team members and additional volunteers with different handwriting styles. Each participant will write uppercase and lowercase letters (A–Z), with multiple samples per letter. Both uppercase and lowercase versions will belong to the same class, giving us 26 classes in total.
+
+This independently collected dataset will serve as an additional test set, allowing us to compare model performance on EMNIST against handwriting from new writers and examine which characters are most frequently misclassified.
+
 ## Project Progress
 
 | Stage | Status |
