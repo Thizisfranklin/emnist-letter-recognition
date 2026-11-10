@@ -10,7 +10,7 @@ MNIST is a widely used benchmark for handwritten-digit recognition. EMNIST exten
 
 Our project uses a 10,000-image subset of EMNIST Letters, covering 26 classes with uppercase and lowercase forms grouped together. During preprocessing, we found that the supplied test subset did not contain all 26 letters. We therefore reserved it and created stratified training, validation, and test partitions from the source-training images.
 
-We will compare a fully connected neural-network baseline with two CNN architectures. We also plan to evaluate separately collected handwriting to investigate how well the models generalize beyond our benchmark subset.
+We will compare a fully connected neural-network (ANN/MLP) baseline with two CNN architectures. We also plan to evaluate separately collected handwriting to investigate how well the models generalize beyond our benchmark subset.
 
 
 ## Contributors
