@@ -1,0 +1,153 @@
+# Baseline CNN: EMNIST Letters (A–Z)
+
+This folder contains the **baseline model** for our capstone: a small convolutional neural network (CNN) trained to classify handwritten letters into 26 classes. It is the reference point that the improved CNN and the ANN/MLP are compared against.
+
+## Dataset
+
+- **Source:** [Voxel51/emnist-letters-tiny](https://huggingface.co/datasets/Voxel51/emnist-letters-tiny) (10,000 images in this download)
+- **Task:** 26-class handwritten letter recognition (upper- and lowercase combined per letter)
+- **Input:** 28×28 grayscale images, shape `(N, 28, 28, 1)`, pixel values normalized to [0, 1]
+- **Labels:** integers `0 = A, 1 = B, ..., 25 = Z`
+
+### Fixed splits (shared by all models)
+
+| Split | Images | Purpose |
+|---|---|---|
+| `train.npz` | 6,837 | Fit model weights |
+| `val.npz` | 855 | Early stopping / model selection |
+| `test.npz` | 855 | Final evaluation only (run once) |
+
+The splits are a stratified 80/10/10 split of the 8,547 source-train images, created with seed 42 during preprocessing. The baseline loads these exact files and does **not** create its own split. The original source-tagged test set (`original_test_optional.npz`, 1,453 images) only contains letters A–S, so it is not used for this evaluation.
+
+## Model architecture
+
+| Layer | Details | Output shape | Params |
+|---|---|---|---|
+| Input | 28 × 28 × 1 | (28, 28, 1) | 0 |
+| Conv2D | 32 filters, 3×3, ReLU, same padding | (28, 28, 32) | 320 |
+| MaxPooling2D | 2×2 | (14, 14, 32) | 0 |
+| Conv2D | 64 filters, 3×3, ReLU, valid padding | (12, 12, 64) | 18,496 |
+| MaxPooling2D | 2×2 | (6, 6, 64) | 0 |
+| Flatten | | (2304) | 0 |
+| Dropout | rate 0.3 | (2304) | 0 |
+| Dense | 128 units, ReLU | (128) | 295,040 |
+| Dense (output) | 26 units, softmax | (26) | 3,354 |
+
+**Total parameters:** 317,210 (about 1.21 MB), all trainable.
+
+The architecture diagram is saved as `baseline_architecture.png`.
+
+## Training setup
+
+- **Framework:** TensorFlow / Keras
+- **Optimizer:** Adam (default learning rate)
+- **Loss:** sparse categorical cross-entropy
+- **Batch size:** 64
+- **Max epochs:** 30 with early stopping (monitor `val_loss`, patience 5, best weights restored)
+- **Epochs run:** 16 (stopped early; weights restored from epoch 11)
+- **Random seed:** 42
+- **Augmentation:** none
+
+## Results
+
+| Metric | Train | Validation | Test |
+|---|---|---|---|
+| Accuracy | 0.9421 | 0.8690 | 0.8842 |
+| Loss | 0.1582 | 0.4499 | 0.4668 |
+
+Train and validation values are from the best epoch (epoch 11). Training metrics are computed with dropout active, so they are slightly pessimistic compared to evaluating the model in inference mode.
+
+- **Test accuracy:** 88.4% (855 images)
+- **Macro F1 (test):** 0.883
+- **Weighted F1 (test):** 0.883
+
+### Plots
+
+| File | Description |
+|---|---|
+| `baseline_architecture.png` | Architecture diagram |
+| `baseline_training_curves.png` | Training vs. validation accuracy and loss |
+| `baseline_confusion_matrix.png` | Confusion matrix on the test set |
+| `baseline_per_class_f1.png` | Per-class F1 scores (sorted) |
+| `baseline_misclassified.png` | Sample of misclassified test images |
+
+### Classification report (test set)
+
+```
+              precision    recall  f1-score   support
+
+           A      0.897     0.812     0.852        32
+           B      0.825     1.000     0.904        33
+           C      0.967     0.853     0.906        34
+           D      0.935     0.879     0.906        33
+           E      0.912     0.969     0.939        32
+           F      0.971     0.971     0.971        34
+           G      0.667     0.733     0.698        30
+           H      0.861     0.939     0.899        33
+           I      0.852     0.697     0.767        33
+           J      0.971     0.971     0.971        34
+           K      0.865     0.970     0.914        33
+           L      0.698     0.882     0.779        34
+           M      0.903     0.903     0.903        31
+           N      1.000     0.700     0.824        30
+           O      0.846     0.971     0.904        34
+           P      0.938     0.938     0.938        32
+           Q      0.759     0.611     0.677        36
+           R      0.962     0.781     0.862        32
+           S      1.000     0.939     0.969        33
+           T      0.892     0.943     0.917        35
+           U      0.806     0.935     0.866        31
+           V      0.938     0.857     0.896        35
+           W      0.892     1.000     0.943        33
+           X      0.886     0.939     0.912        33
+           Y      0.933     0.848     0.889        33
+           Z      0.968     0.938     0.952        32
+
+    accuracy                          0.884       855
+   macro avg      0.890     0.884     0.883       855
+weighted avg      0.890     0.884     0.883       855
+```
+
+## Observations
+
+- **Strongest letters (F1):** F and J (0.971), S (0.969), Z (0.952), W (0.943), E (0.939).
+- **Weakest letters (F1):** Q (0.677), G (0.698), I (0.767), L (0.779), N (0.824).
+- **Most confused pairs (true → predicted):** Q → G (10), I → L (8), G → Q (4), L → I (4), D → O (3), G → B (3), N → M (3), V → U (3).
+- **Q and G:** Q has the lowest recall (0.611), mostly because 10 of its 36 test images were predicted as G. G has the second-lowest F1, partly from being confused back into Q.
+- **I and L:** I → L is the second-largest confusion. I recall is 0.697, while L has high recall (0.882) but low precision (0.698), meaning the model over-predicts L.
+- **N:** Precision is 1.000 but recall is 0.700, so the model rarely predicts N wrongly but misses many true Ns (3 predicted as M).
+- **Overfitting:** At the best epoch, training accuracy (94.2%) is about 7 points above validation accuracy (86.9%). Training loss keeps falling to 0.091 by epoch 16, while validation loss stops improving after epoch 11 and fluctuates. Dropout (0.3) is the only regularization in this baseline.
+- **Test vs. validation:** Test accuracy (88.4%) is slightly above validation (86.9%). With only 855 images in each, a difference of this size is within normal sampling noise.
+
+The weakest classes match the ambiguous handwriting flagged during preprocessing (G/Q, L/I, U/V). D → O and N → M were not on that list, so they are new observations from this model.
+
+## Limitations
+
+- The dataset is small (6,837 training images), so results can vary between runs and seeds.
+- Writer-independent separation between splits has not been verified.
+- Some letter labels are visually ambiguous and were kept, not relabeled or removed.
+- The main test set is a new capstone split, **not** the official EMNIST test set, so scores are not directly comparable to published EMNIST benchmarks.
+- Each test class has only 30–36 images, so per-class precision and recall are noisy.
+
+## How to run
+
+1. Make sure `train.npz`, `val.npz` and `test.npz` are available (in `emnist_preprocessed_v1/` or on the team Google Drive).
+2. Open the notebook in Google Colab and run the **Baseline Model** section after the preprocessing cells.
+3. Outputs (plots and `baseline_cnn.keras`) are saved to the working directory.
+
+```python
+import numpy as np
+with np.load("train.npz", allow_pickle=False) as d:
+    X_train, y_train = d["X"], d["y"]
+```
+
+## Files
+
+| File | Description |
+|---|---|
+| `baseline_cnn.keras` | Trained baseline model |
+| `baseline_architecture.png` | Architecture diagram |
+| `baseline_training_curves.png` | Accuracy and loss curves |
+| `baseline_confusion_matrix.png` | Test confusion matrix |
+| `baseline_per_class_f1.png` | Per-class F1 chart |
+| `baseline_misclassified.png` | Misclassified examples |
