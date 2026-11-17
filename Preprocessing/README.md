@@ -110,9 +110,6 @@ I also created a shared image-loader notebook for loading the data into ANN and 
 - The reserved source-test subset contains only 19 classes.
 - No augmentation was performed during preprocessing. Any augmentation should be applied to training data only.
 
-## Summary
-
-The preprocessing stage is complete. I validated the dataset, investigated class distributions and handwriting variations, addressed the incomplete source-test class coverage, normalized the images, and exported fixed splits for the team.
 
 The main goal was to ensure that all three architectures use the same dataset so their results can be compared fairly.
 
