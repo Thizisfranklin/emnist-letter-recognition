@@ -1,0 +1,6 @@
+gradio>=6.0
+numpy
+opencv-python-headless
+tensorflow>=2.16      # DenseNet model is a Keras 3 .keras file
+torch>=2.0
+torchvision>=0.15
