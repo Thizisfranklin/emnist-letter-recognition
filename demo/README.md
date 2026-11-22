@@ -1,8 +1,7 @@
-# Interactive Demo: Draw a Letter, Watch the Model Read It
+# Computer Vision Demo
 
 A small Gradio web app built on our trained models. Pick a model, draw a letter or a word with
-the mouse (or a finger or stylus), and the prediction is typed into a text file on screen.
-You can edit that file and download it as `my_text.txt`.
+the mouse (or a finger or stylus), and the prediction is typed into `my_text.txt` on screen.
 
 ## Run it
 
@@ -29,18 +28,12 @@ The app loads the weights already in this repo, so no Google Drive data is neede
 
 ## Using it
 
-1. **Model**: choose one of the three models. All three are loaded at startup, so switching is instant.
-2. **What are you drawing?**
-   - *Single letter*: everything on the canvas is treated as one letter, and the result is appended with no space.
-   - *Word(s)*: the drawing is split into letters wherever there's a gap. A wider gap becomes a space, and a second line of writing becomes a new line. In the text file, a space is added before each new word.
-3. Press **Recognize**. By default, the result is added to `my_text.txt` and the canvas is cleared for the next letter or word. Both behaviours can be turned off with the checkboxes. With auto-add off, you can fix the *Recognized* box and press **Add to text**.
-4. Edit the text file directly, or use **Space / New line / Backspace / Clear text**, then **Download my_text.txt**.
-
-Below the canvas, the app shows:
-- **What the model read**: your drawing with a box around each letter it found, plus its prediction and confidence (green ≥ 80%, orange ≥ 50%, red below 50%).
-- **Model input**: the 28×28 EMNIST-format image each letter became. Useful for explaining failures.
-- **Top 5 guesses** and a **per-letter table** with the 2nd and 3rd choices.
-- **Compare all three models**: runs every model on the same drawing, side by side.
+1. **Model**: choose one of the three models (all are loaded at startup, so switching is instant).
+2. **Draw here**: draw a letter or print a word, leaving small gaps between letters.
+3. Press **Recognize**. The prediction is added to **my_text.txt** and the canvas clears for the next one.
+   A single letter is appended directly, so you can build a word one letter at a time; a whole
+   word gets a space in front of it. **Clear** wipes the canvas without recognizing.
+4. **my_text.txt** can be edited directly (fix a letter, add spaces or new lines).
 
 Tips: print letters with small gaps between them (cursive and touching letters are read as one
 letter). Upper- and lowercase share a class in EMNIST Letters, so output is always in capitals.
