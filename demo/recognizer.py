@@ -84,7 +84,9 @@ EMNIST_STROKE = 3.6
 
 def _stroke_width(binary: np.ndarray) -> float:
     """Approximate pen width in pixels: 2 x mean distance-to-edge along stroke centres."""
-    dt = cv2.distanceTransform(binary.astype(np.uint8), cv2.DIST_L2, 3)
+    # Pad with background first: a crop that is all ink (e.g. a straight "I") has no edge to measure to
+    padded = cv2.copyMakeBorder(binary.astype(np.uint8), 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=0)
+    dt = cv2.distanceTransform(padded, cv2.DIST_L2, 3)
     ridge = dt[(dt >= cv2.dilate(dt, np.ones((3, 3), np.uint8))) & (dt > 0)]
     return float(2 * ridge.mean()) if ridge.size else 1.0
 
@@ -174,33 +176,63 @@ class Glyph:
     space_before: bool = False
 
 
-def _merge_overlapping(boxes: list[list[int]], labels_per_box: list[list[int]]):
-    """Merge components whose horizontal extents overlap (i/j dots, a crossbar drawn separately...)."""
-    merged = True
-    while merged:
-        merged = False
-        for i in range(len(boxes)):
-            for j in range(i + 1, len(boxes)):
-                ax, ay, aw, ah = boxes[i]
-                bx, by, bw, bh = boxes[j]
-                overlap = min(ax + aw, bx + bw) - max(ax, bx)
-                if overlap <= 0:
-                    continue
-                narrow = min(aw, bw)
-                # vertical distance between them (0 if they overlap vertically)
-                v_gap = max(0, max(ay, by) - min(ay + ah, by + bh))
-                tall = max(ah, bh)
-                if overlap >= 0.5 * narrow and v_gap <= 0.8 * tall:
-                    x0, y0 = min(ax, bx), min(ay, by)
-                    x1, y1 = max(ax + aw, bx + bw), max(ay + ah, by + bh)
-                    boxes[i] = [x0, y0, x1 - x0, y1 - y0]
-                    labels_per_box[i] += labels_per_box[j]
-                    del boxes[j], labels_per_box[j]
-                    merged = True
-                    break
-            if merged:
-                break
-    return boxes, labels_per_box
+def _union(a: list[int], b: list[int]) -> list[int]:
+    x0, y0 = min(a[0], b[0]), min(a[1], b[1])
+    x1, y1 = max(a[0] + a[2], b[0] + b[2]), max(a[1] + a[3], b[1] + b[3])
+    return [x0, y0, x1 - x0, y1 - y0]
+
+
+def _merge_in_row(items: list[tuple[list[int], list[int]]]) -> list[tuple[list[int], list[int]]]:
+    """
+    Within ONE text line, merge pieces that sit on top of each other: the dot of an i/j,
+    a crossbar drawn as a separate stroke, a letter broken by a faint stroke.
+    (Doing this per line is what keeps letters from different lines apart.)
+    """
+    items = sorted(items, key=lambda it: it[0][0])
+    out: list[tuple[list[int], list[int]]] = []
+    for box, labs in items:
+        if out:
+            pb, pl = out[-1]
+            overlap = min(pb[0] + pb[2], box[0] + box[2]) - max(pb[0], box[0])
+            if overlap > 0 and overlap >= 0.5 * min(pb[2], box[2]):
+                out[-1] = (_union(pb, box), pl + labs)
+                continue
+        out.append((box, list(labs)))
+    return out
+
+
+def _split_wide(box, mask, ref_w, row_h, stroke):
+    """
+    Split a piece that is clearly several touching letters (e.g. a double T whose crossbars
+    join) at its thinnest columns. Conservative on purpose so M and W stay whole.
+    Returns a list of (box, sub-mask).
+    """
+    x, y, w, h = box
+    if not (w > 1.8 * ref_w and w > 1.35 * row_h):
+        return [(box, mask)]
+    k = max(2, int(round(w / ref_w)))
+    cols = mask.sum(axis=0).astype(float)
+    cuts = []
+    for i in range(1, k):
+        ideal = int(i * w / k)
+        lo, hi = max(1, ideal - int(0.3 * w / k)), min(w - 1, ideal + int(0.3 * w / k))
+        if hi <= lo:
+            continue
+        c = lo + int(np.argmin(cols[lo:hi]))
+        if cols[c] <= 1.6 * stroke:            # only cut through a thin join
+            cuts.append(c)
+    if not cuts:
+        return [(box, mask)]
+    pieces, start = [], 0
+    for c in cuts + [w]:
+        sub = np.zeros_like(mask)
+        sub[:, start:c] = mask[:, start:c]
+        ys, xs = np.nonzero(sub)
+        if len(xs):
+            x0, x1, y0, y1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
+            pieces.append(([x + x0, y + y0, x1 - x0, y1 - y0], sub[y0:y1, x0:x1]))
+        start = c
+    return pieces
 
 
 def segment(ink: np.ndarray, mode: str = "word", ink_threshold: float = 0.25) -> list[Glyph]:
@@ -208,8 +240,8 @@ def segment(ink: np.ndarray, mode: str = "word", ink_threshold: float = 0.25) ->
     Split the drawing into letters.
 
     mode="letter": everything on the canvas is one letter.
-    mode="word":   connected pieces of ink become letters, read left-to-right,
-                   top-to-bottom. Big horizontal gaps become spaces, new rows become new lines.
+    mode="word":   find the text lines first, then the letters in each line, read
+                   left-to-right, top-to-bottom. Wide gaps become spaces, lines become new lines.
     """
     binary = (ink > ink_threshold).astype(np.uint8)
     if binary.sum() == 0:
@@ -220,61 +252,90 @@ def segment(ink: np.ndarray, mode: str = "word", ink_threshold: float = 0.25) ->
         x0, x1, y0, y1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
         return [Glyph(box=(int(x0), int(y0), int(x1 - x0), int(y1 - y0)), crop=ink[y0:y1, x0:x1].copy())]
 
-    # Close tiny gaps inside strokes so a letter isn't split by a shaky mouse
-    joined = cv2.morphologyEx(binary, cv2.MORPH_CLOSE,
-                              cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
+    # Close tiny gaps inside strokes (shaky mouse, faint anti-aliased pen); scale with pen width
+    stroke = _stroke_width(binary)
+    k = 3 if stroke < 4 else 5
+    joined = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k)))
     n, labels, stats, _ = cv2.connectedComponentsWithStats(joined, connectivity=8)
 
-    comps = []
-    for i in range(1, n):
-        x, y, w, h, area = stats[i]
-        if area < 15:                       # specks
-            continue
-        comps.append(([int(x), int(y), int(w), int(h)], [i]))
+    min_area = max(8, 1.5 * stroke * stroke)
+    comps = [([int(v) for v in stats[i][:4]], [i]) for i in range(1, n) if stats[i][4] >= min_area]
     if not comps:
         return []
 
-    boxes = [c[0] for c in comps]
-    lab_lists = [c[1] for c in comps]
-    boxes, lab_lists = _merge_overlapping(boxes, lab_lists)
-
-    heights = [b[3] for b in boxes]
-    median_h = float(np.median(heights))
-
-    # Drop leftover dots/specks that didn't merge into anything
-    keep = [k for k, b in enumerate(boxes) if max(b[2], b[3]) >= 0.25 * median_h]
-    boxes = [boxes[k] for k in keep]
-    lab_lists = [lab_lists[k] for k in keep]
-
-    # Group into rows by vertical centre
-    order = sorted(range(len(boxes)), key=lambda k: boxes[k][1] + boxes[k][3] / 2)
-    rows: list[list[int]] = []
-    row_centre = None
-    for k in order:
-        cy = boxes[k][1] + boxes[k][3] / 2
-        if row_centre is None or abs(cy - row_centre) > 0.7 * median_h:
-            rows.append([k])
-            row_centre = cy
+    # 1. Text lines: cluster the main pieces by vertical centre
+    sizes = np.array([max(b[2], b[3]) for b, _ in comps])
+    big = sizes >= 0.4 * np.median(sizes)
+    main = [c for c, m in zip(comps, big) if m]
+    small = [c for c, m in zip(comps, big) if not m]
+    median_h = float(np.median([b[3] for b, _ in main]))
+    rows: list[list] = []
+    centres: list[float] = []
+    for c in sorted(main, key=lambda c: c[0][1] + c[0][3] / 2):
+        cy = c[0][1] + c[0][3] / 2
+        if not rows or abs(cy - centres[-1]) > 0.7 * median_h:
+            rows.append([c]); centres.append(cy)
         else:
-            rows[-1].append(k)
-            row_centre = np.mean([boxes[m][1] + boxes[m][3] / 2 for m in rows[-1]])
+            rows[-1].append(c)
+            centres[-1] = float(np.mean([b[1] + b[3] / 2 for b, _ in rows[-1]]))
+    # Dots and small strokes join the nearest line
+    for c in small:
+        cy = c[0][1] + c[0][3] / 2
+        r = int(np.argmin([abs(cy - ce) for ce in centres]))
+        if abs(cy - centres[r]) < 1.2 * median_h:
+            rows[r].append(c)
 
+    # 2. Letters within each line
     glyphs: list[Glyph] = []
     for r, row in enumerate(rows):
-        row.sort(key=lambda k: boxes[k][0])
-        # A gap is a space if it's clearly wider than the usual gap between letters in this row
-        gaps = [boxes[b][0] - (boxes[a][0] + boxes[a][2]) for a, b in zip(row, row[1:])]
-        typical = float(np.median(gaps)) if gaps else 0.0
-        space_gap = max(0.6 * median_h, 2.2 * max(typical, 0.0))
+        pieces = _merge_in_row(row)
+        row_h = float(np.median([b[3] for b, _ in pieces]))
+        ref_w = float(np.median([b[2] for b, _ in pieces]))
+        if len(pieces) < 3:
+            ref_w = min(ref_w, 0.8 * row_h)
+        letters = []
+        for box, labs in pieces:
+            x, y, w, h = box
+            mask = np.isin(labels[y:y + h, x:x + w], labs)
+            letters += _split_wide(box, mask, ref_w, row_h, stroke)
+        letters = [(b, m) for b, m in letters if max(b[2], b[3]) >= 0.3 * row_h]
+        letters.sort(key=lambda bm: bm[0][0])
+
+        gaps = [b2[0] - (b1[0] + b1[2]) for (b1, _), (b2, _) in zip(letters, letters[1:])]
+        typical = max(float(np.median(gaps)), 0.0) if gaps else 0.0
+        space_gap = max(0.75 * row_h, 2.5 * typical)
         prev_right = None
-        for k in row:
-            x, y, w, h = boxes[k]
-            mask = np.isin(labels[y:y + h, x:x + w], lab_lists[k])
-            crop = ink[y:y + h, x:x + w] * mask
+        for (x, y, w, h), m in letters:
+            crop = ink[y:y + h, x:x + w] * m
             space = prev_right is not None and (x - prev_right) > space_gap
             glyphs.append(Glyph(box=(x, y, w, h), crop=crop, row=r, space_before=space))
             prev_right = x + w
     return glyphs
+
+
+def crop_to_page(ink: np.ndarray, trim_pct: float = 0.0) -> tuple[np.ndarray, tuple[int, int]]:
+    """
+    For screen captures: if a page border / window frame surrounds the writing (a thin piece of
+    ink spanning most of the image), keep only what's inside it. Then trim trim_pct from each side.
+    Returns (cropped ink, (x offset, y offset)).
+    """
+    H, W = ink.shape
+    x0, y0, x1, y1 = 0, 0, W, H
+    binary = (ink > 0.25).astype(np.uint8)
+    n, _, stats, _ = cv2.connectedComponentsWithStats(binary, connectivity=8)
+    best = None
+    for i in range(1, n):
+        x, y, w, h, area = stats[i]
+        if w > 0.5 * W and h > 0.5 * H and area < 0.1 * w * h:      # a frame, not writing
+            if best is None or w * h < best[2] * best[3]:            # innermost frame
+                best = (x, y, w, h)
+    if best is not None:
+        x, y, w, h = best
+        m = max(4, int(0.01 * max(w, h)))
+        x0, y0, x1, y1 = x + m, y + m, x + w - m, y + h - m
+    ty, tx = int((y1 - y0) * trim_pct / 100), int((x1 - x0) * trim_pct / 100)
+    x0, y0, x1, y1 = x0 + tx, y0 + ty, x1 - tx, y1 - ty
+    return ink[y0:y1, x0:x1], (x0, y0)
 
 
 # ---------------------------------------------------------------------------
@@ -288,6 +349,16 @@ class Prediction:
     probs: np.ndarray                    # (26,)
     model_input: np.ndarray              # (S, S) image the model saw, for display
     glyph: Glyph = field(repr=False, default=None)
+
+
+def _no_foot(crop: np.ndarray) -> bool:
+    """True if a glyph is a (possibly slanted) bar with no horizontal foot, i.e. an I rather than an L."""
+    m = crop > 0.25
+    h, w = m.shape
+    if h == 0 or w >= 0.6 * h:
+        return False
+    cols = np.nonzero(m[int(0.8 * h):].any(axis=0))[0]
+    return len(cols) == 0 or (cols.max() - cols.min() + 1) < max(0.5 * w, 0.18 * h)
 
 
 class Recognizer:
@@ -353,7 +424,12 @@ class Recognizer:
         preds = []
         for g, (p, img) in zip(glyphs, outs):
             i = int(np.argmax(p))
-            preds.append(Prediction(CLASS_NAMES[i], float(p[i]), p, img, g))
+            letter = CLASS_NAMES[i]
+            # EMNIST's "L" class includes lowercase l, which is just a vertical bar. Output is in
+            # capitals, so a bare vertical bar (no foot) is far more likely to be an I.
+            if letter == "L" and _no_foot(g.crop):
+                letter = "I"
+            preds.append(Prediction(letter, float(p[i]), p, img, g))
         return compose_text(preds), preds
 
 

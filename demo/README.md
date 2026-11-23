@@ -1,7 +1,7 @@
 # Computer Vision Demo
 
-A small Gradio web app built on our trained models. Pick a model, draw a letter or a word with
-the mouse (or a finger or stylus), and the prediction is typed into `my_text.txt` on screen.
+A small Gradio web app built on our trained models. Pick a model, then either draw on screen or write on a
+reMarkable tablet (through its screen share), and the prediction is typed into `my_text.txt` on screen.
 
 ## Run it
 
@@ -28,12 +28,33 @@ The app loads the weights already in this repo, so no Google Drive data is neede
 
 ## Using it
 
-1. **Model**: choose one of the three models (all are loaded at startup, so switching is instant).
-2. **Draw here**: draw a letter or print a word, leaving small gaps between letters.
-3. Press **Recognize**. The prediction is added to **my_text.txt** and the canvas clears for the next one.
+Pick a **Model** at the top (all three are loaded at startup, so switching is instant), then use either tab.
+
+### Draw tab
+1. **Draw here**: draw a letter or print a word, leaving small gaps between letters.
+2. Press **Recognize**. The prediction is added to **my_text.txt** and the canvas clears.
    A single letter is appended directly, so you can build a word one letter at a time; a whole
    word gets a space in front of it. **Clear** wipes the canvas without recognizing.
-4. **my_text.txt** can be edited directly (fix a letter, add spaces or new lines).
+
+### reMarkable tablet tab
+1. On the computer running the demo, open the **reMarkable desktop app** and start
+   **Screen share** from the tablet.
+2. In the demo, click **Start screen share** and pick the reMarkable window in the browser's
+   picker (Chrome or Edge recommended; on macOS, allow screen recording for the browser in
+   System Settings → Privacy & Security the first time).
+3. Write on the tablet, then click **Read page**. The *whole page* is read into my_text.txt, line by
+   line, replacing the previous reading, so re-reading never duplicates text.
+   Tick **Auto-read every 2 seconds** to have the text follow along as you write.
+4. The page border and the window around it are detected and skipped automatically. If an icon
+   near the edge of the page gets read as a letter, raise **Ignore page edges**.
+   Open **What the model read** to see each letter the app found, with its prediction and confidence.
+5. **Download my_text.txt** saves the current text. Note that auto-read overwrites manual edits, so
+   turn it off before editing.
+
+For best results: make the reMarkable window large (more pixels per letter), print in capitals
+with a small gap between letters and a wider gap between words, and use a medium/thick pen.
+
+The screen capture happens in your browser, so it also works over a `--share` link.
 
 Tips: print letters with small gaps between them (cursive and touching letters are read as one
 letter). Upper- and lowercase share a class in EMNIST Letters, so output is always in capitals.
