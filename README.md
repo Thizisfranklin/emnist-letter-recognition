@@ -130,5 +130,4 @@ Overall, this project connected **data preparation → model development → eva
 - Nathan Butler
 - Michael Sheehey
 - Franklin Osualaaham
-- Joseph Uzoigwe
 - Sarthakkumar Patel
