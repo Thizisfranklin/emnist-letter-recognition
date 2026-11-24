@@ -2,7 +2,7 @@
 
 **Computer Vision | EMNIST Letters Tiny | CNN Model Comparison | Interactive Demo**
 
-For our capstone project, we built and compared deep learning models that recognize handwritten English letters (A–Z). We used a smaller EMNIST dataset, trained three CNN architectures, analyzed their classification errors, and built a Gradio demo to try the models on handwritten input.
+For our project, we built and compared deep learning models that recognize handwritten English letters (A–Z). We used a smaller EMNIST dataset, trained three CNN architectures, analyzed their classification errors, and built a Gradio demo to try the models on handwritten input.
 
 **Project status: Completed — preprocessing, model training, evaluation, and capstone presentation.**
 
