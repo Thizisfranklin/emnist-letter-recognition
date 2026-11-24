@@ -2,7 +2,7 @@
 
 ## Overview
 
-This notebook covers my data preprocessing and exploratory data analysis for our handwritten letter recognition capstone. We're using the [EMNIST Letters Tiny dataset](https://huggingface.co/datasets/Voxel51/emnist-letters-tiny) to compare an ANN baseline against two CNN architectures.
+This notebook covers my data preprocessing and exploratory data analysis for our handwritten letter recognition capstone. We're using the [EMNIST Letters Tiny dataset](https://huggingface.co/datasets/Voxel51/emnist-letters-tiny) to compare a **two-layer CNN baseline against two advanced CNN architectures**.
 
 My responsibility was to prepare a consistent dataset that everyone could use for training and evaluation without having to repeat preprocessing or create separate data splits.
 
