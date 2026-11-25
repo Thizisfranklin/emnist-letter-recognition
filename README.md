@@ -4,6 +4,8 @@
 
 For our project, we compared deep learning approaches for recognizing handwritten English letters (A–Z). We prepared a shared EMNIST dataset, trained and evaluated three CNN architectures, investigated difficult letter pairs, and took the models beyond the test set by experimenting with handwritten pages and building an interactive Gradio demo.
 
+[**Project Presentation Slides — Google Slides**](https://docs.google.com/presentation/d/17Jc2SwhbPnJ2WA2-AIsS3xI-joKKjaE8t_J3gP1UDDA/edit?slide=id.h3f6c1ef72254beed_0_30#slide=id.h3f6c1ef72254beed_0_30)
+
 ## A little background: From MNIST to EMNIST
 
 **MNIST** (*Modified NIST*) is one of the best-known datasets in machine learning. Introduced in **1998**, it contains images of handwritten digits (0–9). It is often called the **“hello world” of computer vision** because recognizing these digits is a common starting point for learning image classification.
